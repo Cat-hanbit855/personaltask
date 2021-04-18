@@ -1,5 +1,5 @@
 ﻿#define _CRT_SECURE_NO_WARNINGS
-//restart 버튼을 눌렀을 때 다시 초기화가 되지 않음
+
 #include <bangtal.h>
 #include <stdio.h>
 #include <stdlib.h>
