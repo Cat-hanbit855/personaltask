@@ -186,21 +186,30 @@ void mouseCallback(ObjectID object, int x, int y, MouseAction action) {
 					dropObject(knife);
 					hideObject(knife);
 					pickObject(knifetrace);
+					showObject(endButton);
+					game = false;
+					stopTimer(timer1);
 
 				}
 				else if (key1 == getHandObject()) {
 					success();
+					showObject(endButton);
+					game = false;
+					stopTimer(timer1);
 				}
 				else if (key2 == getHandObject()) {
 					broken();
+					showObject(endButton);
+					game = false;
+					stopTimer(timer1);
 				}
 				else if (clip == getHandObject()) {
 					hidden();
 					stopTimer(timer1);
+					showObject(endButton);
+					game = false;
+					stopTimer(timer1);
 				}
-				showObject(endButton);
-				game = false;
-				stopTimer(timer1);
 			}
 			else if (object == picture1) {
 				if (scissors == getHandObject()) {
