@@ -1,17 +1,24 @@
-﻿#include <bangtal.h>
+﻿#define _CRT_SECURE_NO_WARNINGS
+//restart 버튼을 눌렀을 때 다시 초기화가 되지 않음
+#include <bangtal.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
-SceneID room1, puzzle;
-ObjectID startButton, endButton, door1,safe, picture1, picture2, table, flowerbase;
+SceneID room1, puzzle, insafe;
+ObjectID startButton, endButton, door1, safe, picture1, picture2, blanket, trace, knifetrace;
 ObjectID knife, scissors, bag, writingcase, book, clip;
-ObjectID key1, key2, keypad;
-TimerID timer1, timer2;
+ObjectID key1, key2, key1copy, keypad;
+TimerID timer1;
+bool locked = true;
+
+bool game = false;
 
 //책 선택지
 ObjectID bookselect1, bookselect2, bookselect3;
 //timer1은 전체 게임 제한시간
-//timer2는 퍼즐 제한 시간
 //시간이 된다면 날아가는 벌레 구현
+
 
 void startGame() {
 	hideObject(startButton);
@@ -24,159 +31,359 @@ void knifeend() {
 }
 
 void success() {
-	showMessage("클립 누르면 문열리는거 모르는 흑우 없제 ?");
+	showMessage("클립 가지고 있으면 문 열리는데!!");
 }
 
 void hidden() {
 	showMessage("어캐 했누..?");
 }
 
-void keypuzzle() {
-
-}
-
-void keypadGame() {
-
-}
-
 void timerCallback(TimerID timer) {
 	if (timer == timer1) {
-		endGame();
 		showMessage("아쉽지만 시간이 지났군요");
+		setObjectImage(startButton, "restart.png");
+		showObject(startButton);
+		showObject(endButton);
 	}
 }
-//ObjectID startButton, endButton, door1, safe, picture1, picture2, table, flowerbase;
-//ObjectID knife, scissors, bag, writingcase, book, clip;
+//퍼즐 코드 
+
+ObjectID piece[9], original_piece[9], finishpuzzle;
+int blank = 8;
+
+int indexX(int i) {
+	return 300 + 200 * (i % 3);
+}
+
+int indexY(int i)
+{
+	return 480 - 200 * (i / 3);
+}
+
+int game_index(ObjectID object)
+{
+	for (int i = 0; i < 9; i++) {
+		if (piece[i] == object) return i;
+	}
+	return -1;
+}
+
+bool possible_move(int i)
+{
+	if (i % 3 > 0 && blank == i - 1) return true;
+	if (i % 3 < 2 && blank == i + 1) return true;
+	if (i / 3 > 0 && blank == i - 3) return true;
+	if (i / 3 < 2 && blank == i + 3) return true;
+
+	return false;
+}
+//game_end 함수에서 끝날 경우 finishpuzzle을 showObject하게 만들어주고 싶음.
+bool game_end() {
+	for (int i = 0; i < 9; i++) {
+		if (piece[i] != original_piece[i]) return false;
+	}
+	return true;
+}
+
+int random()
+{
+	int i = -1;
+	while (i == -1) {
+		switch (rand() % 3) {
+		case 0: if (blank % 3 > 0) i = blank - 1;
+			break;
+		case 1: if (blank % 3 < 2) i = blank + 1;
+			break;
+		case 2: if (blank / 3 > 0) i = blank - 3;
+			break;
+		case 3: if (blank / 3 < 2) i = blank + 3;
+			break;
+
+		}
+	}
+	return i;
+}
+
+void game_move(int i)
+{
+	ObjectID object = piece[i];
+	piece[i] = piece[blank];
+	locateObject(piece[i], puzzle, indexX(i), indexY(i));
+	piece[blank] = object;
+	locateObject(piece[blank], puzzle, indexX(blank), indexY(blank));
+
+	blank = i;
+}
+
+void game_start()
+{
+	for (int i = 0; i < 56; i++) {
+		game_move(random());
+	}
+
+}
+
+SceneID game_init() {
+
+	puzzle = createScene("빈화면", "noname.png");
+
+	char path[50];
+	for (int i = 0; i < 9; i++) {
+		sprintf(path, "dog-00%d.png", i);
+		piece[i] = createObject(path);
+		locateObject(piece[i], puzzle, indexX(i), indexY(i));
+		showObject(piece[i]);
+		original_piece[i] = piece[i];
+	}
+	game_start();
+
+	return puzzle;
+}
+//마우스 콜백
 void mouseCallback(ObjectID object, int x, int y, MouseAction action) {
-	if (object == startButton) {
-		startGame();
-	}
-	else if (object == endButton) {
-		endGame();
-	}
-	else if (object == door1) {
-		if (knife == getHandObject()) {
-			//칼과 열쇠를 같은 가방에 넣으면 열쇠가 깨진다는 설정
-			knifeend();
+	int i = game_index(object);
+	if(game) {
+		if (possible_move(i)) {
+			game_move(i);
 		}
-		else if (key1 == getHandObject()) {
-			success();
+		//여기부터  room1
+		else if (object == startButton) {
+			startGame();
+			hideObject(endButton);
 		}
-		else if (clip == getHandObject()) {
-			hidden();
+		else if (object == endButton) {
+			endGame();
 		}
-	}
-	else if (object == picture1) {
-		enterScene(puzzle);
-	}
-	else if (object == keypad) {
-		showKeypad("生死苦樂", door1);
-	}
-	else if (object == picture1) {
-		if (scissors == getHandObject()) {
+		else if (object == door1) {
+			if (knife == getHandObject() && key1 == getHandObject()) {
+				//칼과 열쇠를 같은 가방에 넣으면 열쇠가 깨진다는 설정
+				knifeend();
+			}
+			else if (knife == getHandObject()) {
+				showMessage("비브라늄으로 된 문이 칼을 부셨어요.");
+				dropObject(knife);
+				hideObject(knife);
+				pickObject(knifetrace);
+
+			}
+			else if (key1 == getHandObject()) {
+				success();
+			}
+			else if (clip == getHandObject()) {
+				hidden();
+				stopTimer(timer1);
+			}
+			setObjectImage(startButton, "restart.png");
+			showObject(startButton);
+			showObject(endButton);
+			game = false;
+			stopTimer(timer1);
+		}
+		else if (object == picture1) {
+			if (scissors == getHandObject()) {
+				hideObject(picture1);
+				showObject(safe);
+				showObject(trace);
+				showObject(keypad);
+			}
+			else {
+				enterScene(game_init());
+			}
+		}
+		//그림 1 누른 후 퍼즐 종료되면
+		else if (object == finishpuzzle) {
+			enterScene(room1);
+			showObject(keypad);
+			showObject(safe);
 			hideObject(picture1);
 		}
+		else if (object == trace) {
+			pickObject(trace);
+		}
+		else if (object == picture2) {
+			locateObject(picture2, room1, 653, 240);
+			showObject(key2);
+		}
+		else if (object == blanket && trace == getHandObject()) {
+			showMessage("");
+		}
+		else if (object == knife) {
+			pickObject(knife);
+		}
+		else if (object == scissors) {
+			pickObject(scissors);
+		}
+		else if (object == book) {
+			showObject(bookselect1);
+			showObject(bookselect2);
+			showObject(bookselect3);
+		}
+		else if (object == bookselect1) {
+			showObject(key1copy); 
+			hideObject(book);
+			hideObject(bookselect1);
+			hideObject(bookselect2);
+			hideObject(bookselect3);
+		}
+		else if (object == bookselect2) {
+			hideObject(book);
+			hideObject(bookselect1);
+			hideObject(bookselect2);
+			hideObject(bookselect3);
+		}
+		else if (object == bookselect3) {
+			decreaseTimer(timer1, 60.0f);
+			hideObject(book);
+			hideObject(bookselect1);
+			hideObject(bookselect2);
+			hideObject(bookselect3);
+		}
+		else if (object == clip) {
+			pickObject(clip);
+		}
+		else if (object == safe) {
+			if (locked == true) {
+				showMessage("잠겨있습니다");
+			}
+			else {
+				enterScene(insafe);
+			}
+		}
+		else if (object == keypad) {
+			showKeypad("1234", safe);
+		}
 	}
-	else if (object == picture2) {
-		locateObject(picture2, room1,  );
+	else  {
+		if (object == startButton) {
+			game = true;
+		}
 	}
-	else if (object == knife) {
-		pickObject(knife);
-	}
-	else if (object == scissors) {
-		pickObject(scissors);
-	}
-	else if (object == book) {
-		showObject(bookselect1);
-		showObject(bookselect2);
-		showObject(bookselect3);
-	}
-	else if (object == bookselect1) {
-		showObject(key1);
-	}
-	else if (object == bookselect2) {
-		hideObject(book);
-	}
-	else if (object == bookselect3) {
-		//시간 2분 줄이는 방법 고민하자
-	}
-	else if (object == clip) {
-		pickObject(clip);
+}
+
+void objectCallback(ObjectID object, EventID event) {
+	if (object == safe) {
+		if (event == EventID::EVENT_KEYPAD) {
+			locked = false;
+			showMessage("잠금 해제되었습니다");
+		}
 	}
 }
 
 int main() {
+
+	srand(time(NULL));
+
 	setGameOption(GameOption::GAME_OPTION_INVENTORY_BUTTON, true);
 	setGameOption(GameOption::GAME_OPTION_MESSAGE_BOX_BUTTON, false);
 	setGameOption(GameOption::GAME_OPTION_ROOM_TITLE, false);
 
 	setMouseCallback(mouseCallback);
 
-	room1 = createScene("배경 방", "빈방.png");
+	setTimerCallback(timerCallback);
+
+	setObjectCallback(objectCallback);
+
+	room1 = createScene("배경 방", "방.png");
+
+	puzzle = createScene("빈화면", "noname.png");
+
+	finishpuzzle = createObject("완성된 그림.png");
+	locateObject(finishpuzzle, puzzle, 0, 0);
+
+	startButton = createObject("start.png");
+	locateObject(startButton, room1, 600, 200);
+	showObject(startButton);
+
+	endButton = createObject("end.png");
+	locateObject(endButton, room1, 600, 130);
+	showObject(endButton);
 
 	door1 = createObject("문.png");
-	locateObject(door1, room1, 800, 270);
+	locateObject(door1, room1, 876, 275);
 	showObject(door1);
 
     safe = createObject("금고.png");
-	locateObject(safe, room1, 800, 270);
+	locateObject(safe, room1, 244, 344);
 
 	picture1 = createObject("그림1.png");
-	locateObject(picture1, room1, 800, 270);
+	locateObject(picture1, room1, 213, 354);
 	showObject(picture1);
 
+	trace = createObject("흔적.png");
+	locateObject(trace, room1, 240, 380);
+	scaleObject(trace, 0.3f);
+
 	picture2 = createObject("그림2.png");
-	locateObject(picture2, room1, 800, 270);
+	locateObject(picture2, room1, 653, 480);
 	showObject(picture2);
 
-	table = createObject("책상.png");
-	locateObject(table, room1, 800, 270);
-	showObject(table);
-
-	flowerbase = createObject("꽃병.png");
-	locateObject(flowerbase, room1, 800, 270);
-	showObject(flowerbase);
+	blanket = createObject("이불.png");
+	locateObject(blanket, room1, 133, 280);
+	scaleObject(blanket, 0.7f);
+	showObject(blanket);
 
 	knife = createObject("칼.png");
-	locateObject(knife, room1, 800, 270);
+	locateObject(knife, room1, 556, 306);
+	scaleObject(knife, 0.7f);
 	showObject(knife);
 
 	scissors = createObject("가위.png");
-	locateObject(scissors, room1, 800, 270);
+	locateObject(scissors, room1, 1040, 168);
+	scaleObject(scissors, 0.25f);
 	showObject(scissors);
 
 	bag = createObject("가방.png");
-	locateObject(bag, room1, 800, 270);
+	locateObject(bag, room1, 502, 250);
+	scaleObject(bag, 0.3f);
 	showObject(bag);
 
 	writingcase = createObject("필통.png");
-	locateObject(writingcase, room1, 800, 270);
+	locateObject(writingcase, room1, 983, 147);
+	scaleObject(writingcase, 0.25f);
 	showObject(writingcase);
 
 	book = createObject("책.png");
-	locateObject(book, room1, 800, 270);
+	locateObject(book, room1, 935, 182);
+	scaleObject(book, 0.2f);
 	showObject(book);
 
 	clip = createObject("클립.png");
-	locateObject(clip, room1, 800, 270);
+	locateObject(clip, room1, 1021, 218);
+	scaleObject(clip, 0.333333333f);
 	showObject(clip);
 
+	knifetrace = createObject("칼흔적.png");
+	locateObject(knifetrace, room1, 830, 275);
+	scaleObject(knifetrace, 0.3f);
+
+	key1 = createObject("열쇠1.png");
+	locateObject(key1, insafe, 540, 300);
+	showObject(key1);
+
+	key1copy = createObject("열쇠1.png");
+	locateObject(key1copy, room1, 935, 182);
+
+	key2 = createObject("열쇠2.png");
+	locateObject(key2, room1, 670, 520);
+	
+
 	bookselect1 = createObject("책선택1.png");
-	locateObject(bookselect1, room1, 800, 270);
+	locateObject(bookselect1, room1, 200, 570);
+	scaleObject(bookselect1, 0.8f);
 
 	bookselect2 = createObject("책선택2.png");
-	locateObject(bookselect2, room1, 800, 270);
+	locateObject(bookselect2, room1, 200, 420);
+	scaleObject(bookselect2, 0.8f);
 
 	bookselect3 = createObject("책선택3.png");
-	locateObject(bookselect3, room1, 800, 270);
+	locateObject(bookselect3, room1, 200, 270);
+	scaleObject(bookselect3, 0.8f);
 
 	keypad = createObject("keypad.png");
-	locateObject(keypad, room1, 800, 270);
+	locateObject(keypad, room1, 300, 430);
+	scaleObject(keypad, 0.1f);
 
-	timer1 = createTimer(300.0f);
+	timer1 = createTimer(180.0f);
 
 	startGame(room1);
 }
-
-//퍼즐 가자~
-//퍼즐이 끝나면서 showObject(safe)와 showObject(keypad)넣어줄 것
