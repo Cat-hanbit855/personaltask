@@ -40,6 +40,10 @@ void success() {
 	showMessage("클립 가지고 있으면 문 열리는데!!");
 }
 
+void broken()
+{
+	showMessage("열쇠가 부셔져서 문이 안열려요");
+}
 void hidden() {
 	showMessage("어캐 했누..?");
 }
@@ -170,7 +174,7 @@ void mouseCallback(ObjectID object, int x, int y, MouseAction action) {
 				hideObject(endButton);
 			}
 			else if (object == endButton) {
-				endGame();
+				 endGame();
 			}
 			else if (object == door1) {
 				if (knife == getHandObject() && key1 == getHandObject()) {
@@ -186,6 +190,9 @@ void mouseCallback(ObjectID object, int x, int y, MouseAction action) {
 				}
 				else if (key1 == getHandObject()) {
 					success();
+				}
+				else if (key2 == getHandObject()) {
+					broken();
 				}
 				else if (clip == getHandObject()) {
 					hidden();
@@ -212,10 +219,11 @@ void mouseCallback(ObjectID object, int x, int y, MouseAction action) {
 			}
 			else if (object == picture2) {
 				locateObject(picture2, room1, 653, 240);
+				locateObject(key2, room1, 653, 240);
 				showObject(key2);
 			}
 			else if (object == blanket && trace == getHandObject()) {
-				showMessage("");
+				showMessage("금고의 힌트 : angel");
 			}
 			else if (object == knife) {
 				pickObject(knife);
@@ -271,13 +279,16 @@ void mouseCallback(ObjectID object, int x, int y, MouseAction action) {
 			     pickObject(key1copy);
 			 }
 			else if (object == keypad) {
-				showKeypad("1234", safe);
+				showKeypad("1004", safe);
 			}
 		}
 	}
 	else  {
 		if (object == startButton) {
 			game = true;
+		}
+		else if (object == endButton) {
+			endGame();
 		}
 	}
 }
@@ -381,17 +392,17 @@ int main() {
 	scaleObject(knifetrace, 0.3f);
 
 	key1 = createObject("열쇠1.png");
-	locateObject(key1, insafe, 130, 320);
-	scaleObject(key1, 0.3f);
+	locateObject(key1, insafe, 130, 370);
+	scaleObject(key1, 0.1f);
 	showObject(key1);
 
 	key1copy = createObject("열쇠1.png");
 	locateObject(key1copy, room1, 935, 182);
-	scaleObject(key1copy, 0.3f);
+	scaleObject(key1copy, 0.05f);
 
 	key2 = createObject("열쇠2.png");
 	locateObject(key2, insafe, 570, 92);
-	scaleObject(key2, 0.3f);
+	scaleObject(key2, 0.1f);
 	showObject(key2);
 	
 
