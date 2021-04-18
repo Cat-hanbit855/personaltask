@@ -6,18 +6,24 @@
 #include <time.h>
 
 SceneID room1, puzzle, insafe;
+
 ObjectID startButton, endButton, door1, safe, picture1, picture2, blanket, trace, knifetrace;
+
 ObjectID knife, scissors, bag, writingcase, book, clip;
+
 ObjectID key1, key2, key1copy, keypad;
+
 TimerID timer1;
+
 bool locked = true;
 
 bool game = false;
 
+bool puzzlegame = false;
+
 //책 선택지
 ObjectID bookselect1, bookselect2, bookselect3;
 //timer1은 전체 게임 제한시간
-//시간이 된다면 날아가는 벌레 구현
 
 
 void startGame() {
@@ -40,8 +46,6 @@ void hidden() {
 
 void timerCallback(TimerID timer) {
 	if (timer == timer1) {
-		showMessage("아쉽지만 시간이 지났군요");
-		setObjectImage(startButton, "restart.png");
 		showObject(startButton);
 		showObject(endButton);
 	}
@@ -77,7 +81,6 @@ bool possible_move(int i)
 
 	return false;
 }
-//game_end 함수에서 끝날 경우 finishpuzzle을 showObject하게 만들어주고 싶음.
 bool game_end() {
 	for (int i = 0; i < 9; i++) {
 		if (piece[i] != original_piece[i]) return false;
@@ -143,114 +146,133 @@ SceneID game_init() {
 void mouseCallback(ObjectID object, int x, int y, MouseAction action) {
 	int i = game_index(object);
 	if(game) {
-		if (possible_move(i)) {
-			game_move(i);
-		}
-		//여기부터  room1
-		else if (object == startButton) {
-			startGame();
-			hideObject(endButton);
-		}
-		else if (object == endButton) {
-			endGame();
-		}
-		else if (object == door1) {
-			if (knife == getHandObject() && key1 == getHandObject()) {
-				//칼과 열쇠를 같은 가방에 넣으면 열쇠가 깨진다는 설정
-				knifeend();
-			}
-			else if (knife == getHandObject()) {
-				showMessage("비브라늄으로 된 문이 칼을 부셨어요.");
-				dropObject(knife);
-				hideObject(knife);
-				pickObject(knifetrace);
-
-			}
-			else if (key1 == getHandObject()) {
-				success();
-			}
-			else if (clip == getHandObject()) {
-				hidden();
-				stopTimer(timer1);
-			}
-			setObjectImage(startButton, "restart.png");
-			showObject(startButton);
-			showObject(endButton);
-			game = false;
-			stopTimer(timer1);
-		}
-		else if (object == picture1) {
-			if (scissors == getHandObject()) {
-				hideObject(picture1);
+		if (puzzlegame)
+		{
+			if (game_end()) {
+				enterScene(room1);
+				showObject(keypad);
 				showObject(safe);
 				showObject(trace);
-				showObject(keypad);
+				hideObject(picture1);
+				puzzlegame = false;
+				game = true;
 			}
-			else {
-				enterScene(game_init());
-			}
-		}
-		//그림 1 누른 후 퍼즐 종료되면
-		else if (object == finishpuzzle) {
-			enterScene(room1);
-			showObject(keypad);
-			showObject(safe);
-			hideObject(picture1);
-		}
-		else if (object == trace) {
-			pickObject(trace);
-		}
-		else if (object == picture2) {
-			locateObject(picture2, room1, 653, 240);
-			showObject(key2);
-		}
-		else if (object == blanket && trace == getHandObject()) {
-			showMessage("");
-		}
-		else if (object == knife) {
-			pickObject(knife);
-		}
-		else if (object == scissors) {
-			pickObject(scissors);
-		}
-		else if (object == book) {
-			showObject(bookselect1);
-			showObject(bookselect2);
-			showObject(bookselect3);
-		}
-		else if (object == bookselect1) {
-			showObject(key1copy); 
-			hideObject(book);
-			hideObject(bookselect1);
-			hideObject(bookselect2);
-			hideObject(bookselect3);
-		}
-		else if (object == bookselect2) {
-			hideObject(book);
-			hideObject(bookselect1);
-			hideObject(bookselect2);
-			hideObject(bookselect3);
-		}
-		else if (object == bookselect3) {
-			decreaseTimer(timer1, 60.0f);
-			hideObject(book);
-			hideObject(bookselect1);
-			hideObject(bookselect2);
-			hideObject(bookselect3);
-		}
-		else if (object == clip) {
-			pickObject(clip);
-		}
-		else if (object == safe) {
-			if (locked == true) {
-				showMessage("잠겨있습니다");
-			}
-			else {
-				enterScene(insafe);
+			else if (possible_move(i))
+			{
+				game_move(i);
 			}
 		}
-		else if (object == keypad) {
-			showKeypad("1234", safe);
+		else
+		{
+			//여기부터  room1
+			 if (object == startButton) {
+				startGame();
+				hideObject(endButton);
+			}
+			else if (object == endButton) {
+				endGame();
+			}
+			else if (object == door1) {
+				if (knife == getHandObject() && key1 == getHandObject()) {
+					//칼과 열쇠를 같은 가방에 넣으면 열쇠가 깨진다는 설정
+					knifeend();
+				}
+				else if (knife == getHandObject()) {
+					showMessage("비브라늄으로 된 문이 칼을 부셨어요.");
+					dropObject(knife);
+					hideObject(knife);
+					pickObject(knifetrace);
+
+				}
+				else if (key1 == getHandObject()) {
+					success();
+				}
+				else if (clip == getHandObject()) {
+					hidden();
+					stopTimer(timer1);
+				}
+				showObject(endButton);
+				game = false;
+				stopTimer(timer1);
+			}
+			else if (object == picture1) {
+				if (scissors == getHandObject()) {
+					hideObject(picture1);
+					showObject(safe);
+					showObject(trace);
+					showObject(keypad);
+				}
+				else {
+					enterScene(game_init());
+					puzzlegame = true;
+				}
+			}
+			else if (object == trace) {
+				pickObject(trace);
+			}
+			else if (object == picture2) {
+				locateObject(picture2, room1, 653, 240);
+				showObject(key2);
+			}
+			else if (object == blanket && trace == getHandObject()) {
+				showMessage("");
+			}
+			else if (object == knife) {
+				pickObject(knife);
+			}
+			else if (object == scissors) {
+				pickObject(scissors);
+			}
+			else if (object == book) {
+				showObject(bookselect1);
+				showObject(bookselect2);
+				showObject(bookselect3);
+			}
+			else if (object == bookselect1) {
+				showObject(key1copy);
+				hideObject(book);
+				hideObject(bookselect1);
+				hideObject(bookselect2);
+				hideObject(bookselect3);
+			}
+			else if (object == bookselect2) {
+				hideObject(book);
+				hideObject(bookselect1);
+				hideObject(bookselect2);
+				hideObject(bookselect3);
+			}
+			else if (object == bookselect3) {
+				decreaseTimer(timer1, 60.0f);
+				hideObject(book);
+				hideObject(bookselect1);
+				hideObject(bookselect2);
+				hideObject(bookselect3);
+			}
+			else if (object == clip) {
+				pickObject(clip);
+			}
+			else if (object == safe) {
+				if (locked == true) {
+					showMessage("잠겨있습니다");
+				}
+				else {
+					enterScene(insafe);
+				}
+			}
+			else if (object == key1) {
+				 pickObject(key1);
+				 enterScene(room1);
+			 }
+			else if (object == key2) {
+				 pickObject(key2);
+				 enterScene(room1);
+			 }
+			else if (object == key1copy) {
+			     pickObject(key1copy);
+			 }
+			else if (object == keypad) {
+				showKeypad("1234", safe);
+			}
 		}
 	}
 	else  {
@@ -286,6 +308,8 @@ int main() {
 	room1 = createScene("배경 방", "방.png");
 
 	puzzle = createScene("빈화면", "noname.png");
+
+	insafe = createScene("금고안", "금고안.png");
 
 	finishpuzzle = createObject("완성된 그림.png");
 	locateObject(finishpuzzle, puzzle, 0, 0);
@@ -357,14 +381,18 @@ int main() {
 	scaleObject(knifetrace, 0.3f);
 
 	key1 = createObject("열쇠1.png");
-	locateObject(key1, insafe, 540, 300);
+	locateObject(key1, insafe, 130, 320);
+	scaleObject(key1, 0.3f);
 	showObject(key1);
 
 	key1copy = createObject("열쇠1.png");
 	locateObject(key1copy, room1, 935, 182);
+	scaleObject(key1copy, 0.3f);
 
 	key2 = createObject("열쇠2.png");
-	locateObject(key2, room1, 670, 520);
+	locateObject(key2, insafe, 570, 92);
+	scaleObject(key2, 0.3f);
+	showObject(key2);
 	
 
 	bookselect1 = createObject("책선택1.png");
